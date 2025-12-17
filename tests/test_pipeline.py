@@ -41,6 +41,51 @@ def test_pipeline_end_to_end(tmp_path: Path):
         assert file.exists(), f"Missing output file: {file}"
 
 
+def test_label_export_frames(tmp_path: Path):
+    frames_dir = tmp_path / "frames"
+    run_dir = tmp_path / "run"
+    export_dir = tmp_path / "export"
+    image_io.generate_synthetic_frames(frames_dir, count=40, size=(120, 90))
+
+    run_cmd = [
+        sys.executable,
+        "-m",
+        "bil.run",
+        "--input",
+        str(frames_dir),
+        "--out",
+        str(run_dir),
+        "--config",
+        str(Path("configs/default.yaml").resolve()),
+        "--output-format",
+        "frames",
+        "--input-format",
+        "frames",
+    ]
+    run_result = subprocess.run(run_cmd, capture_output=True, text=True)
+    assert run_result.returncode == 0, run_result.stderr
+
+    export_cmd = [
+        sys.executable,
+        "-m",
+        "bil.label_export",
+        "--run",
+        str(run_dir),
+        "--out",
+        str(export_dir),
+        "--top-k",
+        "5",
+    ]
+    export_result = subprocess.run(export_cmd, capture_output=True, text=True)
+    assert export_result.returncode == 0, export_result.stderr
+
+    csv_path = export_dir / "segments.csv"
+    keyframes_dir = export_dir / "keyframes"
+    assert csv_path.exists(), "segments.csv missing after label export"
+    montage_files = list(keyframes_dir.glob("segment_*.png"))
+    assert montage_files, "No keyframe montages were created"
+
+
 def test_pipeline_mp4_if_cv2(tmp_path: Path):
     cv2 = pytest.importorskip("cv2")
     import numpy as np

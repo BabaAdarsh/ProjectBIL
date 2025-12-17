@@ -17,6 +17,9 @@ def build_report(run_dir: Path, summary: Dict, eval_data: Optional[Dict], logger
     num_segments = summary.get("num_segments_raw", 0)
     num_clips = summary.get("num_clips", 0)
     failure_reasons = summary.get("failure_reasons", {})
+    frames_fps = summary.get("frames_fps")
+    output_fps = summary.get("output_fps")
+    input_kind = summary.get("input_kind")
     avg_clip_dur = 0.0
     clips_index = run_dir / "clips" / "index.json"
     if clips_index.exists():
@@ -50,6 +53,9 @@ def build_report(run_dir: Path, summary: Dict, eval_data: Optional[Dict], logger
   <li>Raw segments: {num_segments}</li>
   <li>Final clips: {num_clips}</li>
   <li>Average clip duration (s): {avg_clip_dur:.2f}</li>
+  <li>Input type: {input_kind or 'unknown'}</li>
+  <li>Frames FPS (frames mode): {frames_fps if frames_fps is not None else 'n/a'}</li>
+  <li>Output FPS: {output_fps if output_fps is not None else 'n/a'}</li>
 </ul>
 <h2>Failure reasons</h2>
 <ul>{failure_list or '<li>None</li>'}</ul>

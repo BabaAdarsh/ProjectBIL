@@ -14,17 +14,6 @@ def _build_writer(cv2, path: Path, fps: float, frame_size):
     return cv2.VideoWriter(str(path), fourcc, fps, frame_size)
 
 
-def _simpleimage_from_cv2_frame(frame) -> image_io.SimpleImage:
-    height, width = frame.shape[:2]
-    # cv2 uses BGR, flatten to RGB
-    pixels: List[int] = []
-    for y in range(height):
-        for x in range(width):
-            b, g, r = frame[y, x]
-            pixels.extend([int(r), int(g), int(b)])
-    return image_io.SimpleImage(width=width, height=height, pixels=pixels)
-
-
 def _write_frames_output(
     clips_dir: Path,
     track: Track,
@@ -73,8 +62,9 @@ def write_clips(
     crop_size_conf = config.get("crop_size", [224, 224])
     metadata: List[Dict] = []
 
+    frames_fps = float(source.fps or config.get("frames_fps", 30.0))
     if requested_format == "frames":
-        fps = 15.0 if source.kind == "frames" else 24.0
+        fps = frames_fps if source.kind == "frames" else 0.0
         all_frames: List[image_io.SimpleImage] = []
         if source.kind == "frames":
             all_frames = source.frames
@@ -82,11 +72,12 @@ def write_clips(
             cv2 = optional_deps.require_cv2()
             cap = cv2.VideoCapture(str(source.path))
             if cap.isOpened():
+                fps = cap.get(cv2.CAP_PROP_FPS) or 24.0
                 while True:
                     ret, frame = cap.read()
                     if not ret:
                         break
-                    all_frames.append(_simpleimage_from_cv2_frame(frame))
+                    all_frames.append(image_io.simple_image_from_cv2_frame(frame))
                 cap.release()
         for track in tracks:
             start_idx = int(track.segment.start * fps)
@@ -110,7 +101,7 @@ def write_clips(
 
     for idx, track in enumerate(tracks):
         if source.kind == "frames":
-            fps = 15.0
+            fps = frames_fps
         else:
             cap = cv2.VideoCapture(str(source.path))
             if not cap.isOpened():
