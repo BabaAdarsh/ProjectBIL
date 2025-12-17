@@ -1,0 +1,2 @@
+# Core dependencies (minimal; optional installs may be needed for full video support)
+pyyaml>=6.0
