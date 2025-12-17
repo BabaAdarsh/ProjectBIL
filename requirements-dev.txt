@@ -1,0 +1,6 @@
+-r requirements.txt
+pytest>=7.0
+# Optional for video/mp4 support and richer image handling:
+# numpy>=1.21
+# opencv-python>=4.5
+# pillow>=10.0
