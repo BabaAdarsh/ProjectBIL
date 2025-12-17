@@ -53,7 +53,7 @@ def load_config(path: Path) -> Dict:
         return yaml.safe_load(f)
 
 
-def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_format: str) -> int:
+def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_format: str, input_format: str) -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     logger = setup_logger(run_dir)
     logger.info("Starting pipeline. input=%s, run_dir=%s", input_path, run_dir)
@@ -61,7 +61,10 @@ def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_forma
     config = load_config(config_path)
     save_json(run_dir / "config_resolved.json", config)
 
-    sources = ingest.collect_sources(input_path)
+    effective_input_format = input_format or str(config.get("input_format", "auto"))
+    effective_output_format = output_format or str(config.get("output_format", "auto"))
+
+    sources = ingest.collect_sources(input_path, input_format=effective_input_format)
     if not sources:
         logger.error("No input sources found at %s", input_path)
         return 1
@@ -104,7 +107,9 @@ def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_forma
             continue
         tracks_all.extend(tracks)
 
-        clips_meta = clip_writer.write_clips(source, tracks, config, run_dir, logger, output_format=output_format)
+        clips_meta = clip_writer.write_clips(
+            source, tracks, config, run_dir, logger, output_format=effective_output_format
+        )
         if not clips_meta:
             failure_reasons[FailureCode.CLIP_WRITE_FAIL.value] = (
                 failure_reasons.get(FailureCode.CLIP_WRITE_FAIL.value, 0) + 1
@@ -161,12 +166,24 @@ def parse_args() -> argparse.Namespace:
         default="auto",
         help="Output clip format. Auto picks mp4 when OpenCV is available, otherwise frames.",
     )
+    parser.add_argument(
+        "--input-format",
+        choices=["auto", "video", "frames"],
+        default="auto",
+        help="Input type. Auto detects based on path (video extension or frame directory).",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    exit_code = orchestrate(args.input, args.out, args.config, output_format=args.output_format)
+    exit_code = orchestrate(
+        args.input,
+        args.out,
+        args.config,
+        output_format=args.output_format,
+        input_format=args.input_format,
+    )
     raise SystemExit(exit_code)
 
 

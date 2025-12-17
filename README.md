@@ -18,10 +18,11 @@ Extractor MVP skeleton for cricket batting segments.
 
 ### Run the pipeline
 ```powershell
-python -m bil.run --input <path_to_video_or_folder> --out run_dir --config configs/default.yaml --output-format auto
+python -m bil.run --input <path_to_video_or_folder_or_frames_dir> --out run_dir --config configs/default.yaml --input-format auto --output-format auto
 ```
 
 Outputs (segments, tracks, clips, report) will appear under `run_dir`.
+Use `--input-format frames --output-format frames` to run without OpenCV using a directory of PNG/JPG frames. For MP4 in/out, install OpenCV and keep `auto` or set `--input-format video --output-format mp4`.
 
 ### Evaluation
 ```powershell

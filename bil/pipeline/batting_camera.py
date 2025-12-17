@@ -44,7 +44,7 @@ def score_segments(
     fps_sampling = float(config.get("fps_sampling", 2))
 
     if source.kind == "video":
-        if not optional_deps.cv2_available():
+        if not optional_deps.has_cv2():
             logger.error("OpenCV not available for scoring video: %s", source.path)
             return [ScoredSegment(s.video, s.start, s.end, 0.0, "cv2_missing") for s in segments]
         cv2 = optional_deps.require_cv2()

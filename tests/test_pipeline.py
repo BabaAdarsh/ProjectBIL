@@ -24,6 +24,8 @@ def test_pipeline_end_to_end(tmp_path: Path):
         str(Path("configs/default.yaml").resolve()),
         "--output-format",
         "frames",
+        "--input-format",
+        "frames",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr

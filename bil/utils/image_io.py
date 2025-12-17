@@ -115,6 +115,8 @@ def read_image(path: Path) -> SimpleImage:
             pixels = list(rgb.tobytes())
             width, height = rgb.size
         return SimpleImage(width=width, height=height, pixels=pixels)
+    if path.suffix.lower() not in {".png"}:
+        raise ImportError("Pillow required for non-PNG images. Install: pip install pillow")
     return _read_png_manual(path)
 
 

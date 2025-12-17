@@ -7,3 +7,4 @@ smoothing: 0.8
 output_fps: 15
 diff_threshold: 25.0
 output_format: auto
+input_format: auto

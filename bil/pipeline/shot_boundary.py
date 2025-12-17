@@ -95,7 +95,7 @@ def detect_shots(
         if segments:
             logger.info("PySceneDetect used for %s, found %d segments", source.path, len(segments))
             return segments, True
-        if not optional_deps.cv2_available():
+        if not optional_deps.has_cv2():
             logger.error("Unable to open video without OpenCV: %s", source.path)
             return [], False
         cv2 = optional_deps.require_cv2()

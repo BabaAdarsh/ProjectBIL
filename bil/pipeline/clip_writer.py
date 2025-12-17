@@ -68,7 +68,7 @@ def write_clips(
 
     requested_format = output_format
     if requested_format == "auto":
-        requested_format = "mp4" if source.kind == "video" and optional_deps.cv2_available() else "frames"
+        requested_format = "mp4" if source.kind == "video" and optional_deps.has_cv2() else "frames"
 
     crop_size_conf = config.get("crop_size", [224, 224])
     metadata: List[Dict] = []
@@ -78,7 +78,7 @@ def write_clips(
         all_frames: List[image_io.SimpleImage] = []
         if source.kind == "frames":
             all_frames = source.frames
-        elif optional_deps.cv2_available():
+        elif optional_deps.has_cv2():
             cv2 = optional_deps.require_cv2()
             cap = cv2.VideoCapture(str(source.path))
             if cap.isOpened():
@@ -100,7 +100,7 @@ def write_clips(
         return metadata
 
     # mp4 output
-    if not optional_deps.cv2_available():
+    if not optional_deps.has_cv2():
         logger.error("OpenCV not available for mp4 output, falling back to frames.")
         return write_clips(source, tracks, config, run_dir, logger, output_format="frames")
     cv2 = optional_deps.require_cv2()

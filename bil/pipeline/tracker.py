@@ -50,7 +50,7 @@ def track_segments(
     crop_size = (int(crop_size_conf[0]), int(crop_size_conf[1]))
 
     if source.kind == "video":
-        if not optional_deps.cv2_available():
+        if not optional_deps.has_cv2():
             logger.error("OpenCV not available for tracking: %s", source.path)
             return [Track(seg, boxes=[], confidence=0.0) for seg in segments]
         cv2 = optional_deps.require_cv2()
