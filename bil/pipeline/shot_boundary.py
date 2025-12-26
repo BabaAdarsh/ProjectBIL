@@ -82,6 +82,11 @@ def _detect_from_frames(
             length = end_sec - start_sec
         if end_sec - start_sec >= min_len:
             segments.append(Segment(str(source.path), start_sec, end_sec))
+    if not segments:
+        total_len = ensure_seconds(len(frames) / fps)
+        if total_len >= min_len:
+            # Avoid returning zero segments when sampling splits a short frame set into sub-min segments.
+            segments.append(Segment(str(source.path), 0.0, total_len))
     logger.info("Frame-diff detector (frames input) used for %s, found %d segments", source.path, len(segments))
     return segments
 
