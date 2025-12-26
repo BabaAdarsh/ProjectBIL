@@ -22,11 +22,8 @@ class SimpleImage:
 
 def simple_image_from_cv2_frame(frame) -> SimpleImage:
     height, width = frame.shape[:2]
-    pixels: List[int] = []
-    for y in range(height):
-        for x in range(width):
-            b, g, r = frame[y, x]
-            pixels.extend([int(r), int(g), int(b)])
+    rgb = frame[:, :, ::-1]
+    pixels = rgb.reshape(-1).tolist()
     return SimpleImage(width=width, height=height, pixels=pixels)
 
 
