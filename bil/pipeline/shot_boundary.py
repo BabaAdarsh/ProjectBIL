@@ -44,12 +44,18 @@ def _detect_with_pyscenedetect(video_path: Path, min_len: float, max_len: float)
 
 
 def _detect_from_frames(
-    source: InputSource, min_len: float, max_len: float, fps_sampling: float, diff_threshold: float, logger: logging.Logger
+    source: InputSource,
+    min_len: float,
+    max_len: float,
+    fps_sampling: float,
+    diff_threshold: float,
+    logger: logging.Logger,
+    frames_fps: float,
 ) -> List[Segment]:
     frames = source.frames
     if not frames:
         return []
-    fps = float(source.frames and 15.0)
+    fps = float(source.fps or frames_fps)
     sample_interval = max(1, int(round(fps / fps_sampling))) if fps_sampling > 0 else 1
     boundaries = [0]
     prev_gray = None
@@ -76,6 +82,11 @@ def _detect_from_frames(
             length = end_sec - start_sec
         if end_sec - start_sec >= min_len:
             segments.append(Segment(str(source.path), start_sec, end_sec))
+    if not segments:
+        total_len = ensure_seconds(len(frames) / fps)
+        if total_len >= min_len:
+            # Avoid returning zero segments when sampling splits a short frame set into sub-min segments.
+            segments.append(Segment(str(source.path), 0.0, total_len))
     logger.info("Frame-diff detector (frames input) used for %s, found %d segments", source.path, len(segments))
     return segments
 
@@ -89,6 +100,7 @@ def detect_shots(
     max_len = float(config.get("max_segment_len", 10.0))
     fps_sampling = float(config.get("fps_sampling", 2))
     diff_threshold = float(config.get("diff_threshold", 25.0))
+    frames_fps = float(config.get("frames_fps", 30.0))
 
     if source.kind == "video":
         segments = _detect_with_pyscenedetect(source.path, min_len, max_len)
@@ -149,5 +161,5 @@ def detect_shots(
         return segments_out, True
 
     # frames input
-    segments = _detect_from_frames(source, min_len, max_len, fps_sampling, diff_threshold, logger)
+    segments = _detect_from_frames(source, min_len, max_len, fps_sampling, diff_threshold, logger, frames_fps)
     return segments, True

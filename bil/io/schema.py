@@ -28,6 +28,7 @@ class Segment:
 class ScoredSegment(Segment):
     score: float
     reason: str
+    details: Dict[str, Any] | None = None
 
 
 @dataclass

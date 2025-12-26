@@ -112,8 +112,9 @@ def track_segments(
     frame_width = source.frames[0].width if source.frames else crop_size[0]
     frame_height = source.frames[0].height if source.frames else crop_size[1]
     bbox = _init_bbox_from_shape(frame_width, frame_height, crop_size)
+    frames_fps = float(source.fps or config.get("frames_fps", 30.0))
     for seg in segments:
-        frames_needed = max(1, int((seg.end - seg.start) * 15))
+        frames_needed = max(1, int(round((seg.end - seg.start) * frames_fps)))
         boxes = []
         for _ in range(frames_needed):
             boxes.append([float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])])

@@ -50,21 +50,44 @@ def load_config(path: Path) -> Dict:
                     cfg[key] = value
         return cfg
     with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f) or {}
 
 
-def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_format: str, input_format: str) -> int:
+def orchestrate(
+    input_path: Path,
+    run_dir: Path,
+    config_path: Path,
+    output_format: str,
+    input_format: str,
+    frames_fps_override: float | None = None,
+) -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     logger = setup_logger(run_dir)
     logger.info("Starting pipeline. input=%s, run_dir=%s", input_path, run_dir)
 
     config = load_config(config_path)
-    save_json(run_dir / "config_resolved.json", config)
+    effective_input_format = input_format if input_format != "auto" else str(config.get("input_format", "auto"))
+    effective_output_format = output_format if output_format != "auto" else str(config.get("output_format", "auto"))
+    frames_fps_default = float(config.get("frames_fps", 30.0))
+    frames_fps = float(frames_fps_override if frames_fps_override is not None else frames_fps_default)
 
-    effective_input_format = input_format or str(config.get("input_format", "auto"))
-    effective_output_format = output_format or str(config.get("output_format", "auto"))
+    config["frames_fps"] = frames_fps
+    config["input_format"] = effective_input_format
+    config["output_format"] = effective_output_format
 
-    sources = ingest.collect_sources(input_path, input_format=effective_input_format)
+    sources = ingest.collect_sources(input_path, input_format=effective_input_format, frames_fps=frames_fps)
+    run_mode = sources[0].kind if sources else None
+
+    resolved_config = dict(config)
+    resolved_config["frames_fps_resolved"] = frames_fps
+    resolved_config.setdefault("output_fps", 15.0)
+    resolved_config["input_format_resolved"] = effective_input_format
+    resolved_config["output_format_resolved"] = effective_output_format
+    resolved_config["input_format_requested"] = input_format
+    resolved_config["output_format_requested"] = output_format
+    resolved_config["input_kind_detected"] = run_mode
+    save_json(run_dir / "config_resolved.json", resolved_config)
+
     if not sources:
         logger.error("No input sources found at %s", input_path)
         return 1
@@ -121,19 +144,7 @@ def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_forma
                 clip_index.append(meta)
 
     save_json(run_dir / "segments_raw.json", [s.to_dict() for s in segments_all])
-    save_json(
-        run_dir / "segments_scored.json",
-        [
-            {
-                "video": s.video,
-                "start": s.start,
-                "end": s.end,
-                "score": s.score,
-                "reason": s.reason,
-            }
-            for s in scored_all
-        ],
-    )
+    save_json(run_dir / "segments_scored.json", [s.to_dict() for s in scored_all])
     from bil.io.schema import serialize_tracks
 
     save_json(run_dir / "tracks" / "tracks.json", serialize_tracks(tracks_all))
@@ -144,6 +155,9 @@ def orchestrate(input_path: Path, run_dir: Path, config_path: Path, output_forma
         "num_segments_raw": len(segments_all),
         "num_clips": len(clip_index),
         "failure_reasons": failure_reasons,
+        "frames_fps": frames_fps,
+        "output_fps": float(config.get("output_fps", 15.0)),
+        "input_kind": run_mode,
     }
     build_report(run_dir, summary, eval_data=None, logger=logger)
     logger.info("Pipeline completed. Summary: %s", summary)
@@ -172,6 +186,12 @@ def parse_args() -> argparse.Namespace:
         default="auto",
         help="Input type. Auto detects based on path (video extension or frame directory).",
     )
+    parser.add_argument(
+        "--frames-fps",
+        type=float,
+        default=None,
+        help="Assumed FPS when the input is a frame directory (frames mode only).",
+    )
     return parser.parse_args()
 
 
@@ -183,6 +203,7 @@ def main() -> None:
         args.config,
         output_format=args.output_format,
         input_format=args.input_format,
+        frames_fps_override=args.frames_fps,
     )
     raise SystemExit(exit_code)
 
