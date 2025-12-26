@@ -47,7 +47,7 @@ def collect_sources(path: Path, input_format: str = "auto", frames_fps: float = 
 
     if fmt == "video":
         if path.is_file():
-        return [InputSource(path=path, kind="video", frames=[])]
+            return [InputSource(path=path, kind="video", frames=[])]
         for video in collect_inputs(path):
             sources.append(InputSource(path=video, kind="video", frames=[], fps=None))
         return sources
